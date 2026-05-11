@@ -1,4 +1,5 @@
 import type { Octokit } from "@octokit/rest";
+import { classifyGithubError, type ToolResult } from "./_errors.js";
 
 export const definition = {
   name: "search_issues",
@@ -40,7 +41,7 @@ export const definition = {
 export async function handler(
   args: Record<string, unknown> | undefined,
   octokit: Octokit,
-) {
+): Promise<ToolResult> {
   const { query, state, labels, sort, direction } = (args ?? {}) as {
     query: string;
     state?: "open" | "closed";
@@ -55,33 +56,37 @@ export async function handler(
     for (const l of labels) qParts.push(`label:"${l}"`);
   }
 
-  const { data } = await octokit.search.issuesAndPullRequests({
-    q: qParts.join(" "),
-    ...(sort ? { sort } : {}),
-    ...(direction ? { order: direction } : {}),
-    per_page: 20,
-  });
+  try {
+    const { data } = await octokit.search.issuesAndPullRequests({
+      q: qParts.join(" "),
+      ...(sort ? { sort } : {}),
+      ...(direction ? { order: direction } : {}),
+      per_page: 20,
+    });
 
-  const items = data.items.map((i) => ({
-    title: i.title,
-    number: i.number,
-    state: i.state,
-    is_pr: Boolean(i.pull_request),
-    repo: i.repository_url.replace("https://api.github.com/repos/", ""),
-    author: i.user?.login,
-    labels: i.labels.map((l) => (typeof l === "string" ? l : l.name)),
-    comments: i.comments,
-    url: i.html_url,
-    created_at: i.created_at,
-    updated_at: i.updated_at,
-  }));
+    const items = data.items.map((i) => ({
+      title: i.title,
+      number: i.number,
+      state: i.state,
+      is_pr: Boolean(i.pull_request),
+      repo: i.repository_url.replace("https://api.github.com/repos/", ""),
+      author: i.user?.login,
+      labels: i.labels.map((l) => (typeof l === "string" ? l : l.name)),
+      comments: i.comments,
+      url: i.html_url,
+      created_at: i.created_at,
+      updated_at: i.updated_at,
+    }));
 
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify({ total: data.total_count, items }, null, 2),
-      },
-    ],
-  };
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ total: data.total_count, items }, null, 2),
+        },
+      ],
+    };
+  } catch (e) {
+    return classifyGithubError(e, `search_issues(${qParts.join(" ")})`);
+  }
 }

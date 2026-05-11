@@ -1,4 +1,5 @@
 import type { Octokit } from "@octokit/rest";
+import { classifyGithubError, type ToolResult } from "./_errors.js";
 
 export const definition = {
   name: "get_repo_readme",
@@ -20,16 +21,20 @@ export const definition = {
 export async function handler(
   args: Record<string, unknown> | undefined,
   octokit: Octokit,
-) {
+): Promise<ToolResult> {
   const { owner, repo } = (args ?? {}) as { owner: string; repo: string };
 
-  const { data } = await octokit.repos.getReadme({ owner, repo });
-  const text = Buffer.from(
-    data.content,
-    data.encoding as BufferEncoding,
-  ).toString("utf-8");
+  try {
+    const { data } = await octokit.repos.getReadme({ owner, repo });
+    const text = Buffer.from(
+      data.content,
+      data.encoding as BufferEncoding,
+    ).toString("utf-8");
 
-  return {
-    content: [{ type: "text" as const, text }],
-  };
+    return {
+      content: [{ type: "text" as const, text }],
+    };
+  } catch (e) {
+    return classifyGithubError(e, `README for ${owner}/${repo}`);
+  }
 }

@@ -1,4 +1,5 @@
 import type { Octokit } from "@octokit/rest";
+import type { ToolResult } from "./_errors.js";
 import * as listRepos from "./list_repos.js";
 import * as searchIssues from "./search_issues.js";
 import * as getPrDetails from "./get_pr_details.js";
@@ -13,7 +14,7 @@ export interface Tool {
   handler: (
     args: Record<string, unknown> | undefined,
     octokit: Octokit,
-  ) => Promise<{ content: Array<{ type: "text"; text: string }> }>;
+  ) => Promise<ToolResult>;
 }
 
 export const tools: Tool[] = [

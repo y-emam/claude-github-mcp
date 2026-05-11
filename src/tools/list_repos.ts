@@ -1,4 +1,5 @@
 import type { Octokit } from "@octokit/rest";
+import { classifyGithubError, type ToolResult } from "./_errors.js";
 
 export const definition = {
   name: "list_repos",
@@ -28,7 +29,7 @@ export const definition = {
 export async function handler(
   args: Record<string, unknown> | undefined,
   octokit: Octokit,
-) {
+): Promise<ToolResult> {
   const visibility =
     (args?.["visibility"] as "all" | "public" | "private" | undefined) ?? "all";
   const sort =
@@ -40,24 +41,30 @@ export async function handler(
       | undefined) ?? "updated";
   const per_page = Math.min((args?.["per_page"] as number | undefined) ?? 10, 30);
 
-  const { data } = await octokit.repos.listForAuthenticatedUser({
-    visibility,
-    sort,
-    per_page,
-  });
+  try {
+    const { data } = await octokit.repos.listForAuthenticatedUser({
+      visibility,
+      sort,
+      per_page,
+    });
 
-  const repos = data.map((r) => ({
-    name: r.full_name,
-    description: r.description,
-    language: r.language,
-    stars: r.stargazers_count,
-    private: r.private,
-    updated_at: r.updated_at,
-    created_at: r.created_at,
-    url: r.html_url,
-  }));
+    const repos = data.map((r) => ({
+      name: r.full_name,
+      description: r.description,
+      language: r.language,
+      stars: r.stargazers_count,
+      private: r.private,
+      updated_at: r.updated_at,
+      created_at: r.created_at,
+      url: r.html_url,
+    }));
 
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(repos, null, 2) }],
-  };
+    return {
+      content: [
+        { type: "text" as const, text: JSON.stringify(repos, null, 2) },
+      ],
+    };
+  } catch (e) {
+    return classifyGithubError(e, "list_repos");
+  }
 }

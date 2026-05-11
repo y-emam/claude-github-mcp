@@ -41,6 +41,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
+  try {
+    const { data } = await octokit.users.getAuthenticated();
+    console.error(`GitHub token validated (authenticated as ${data.login})`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`GITHUB_TOKEN failed authentication: ${message}`);
+    process.exit(1);
+  }
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("GitHub MCP server running on stdio");

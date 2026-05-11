@@ -1,4 +1,5 @@
 import type { Octokit } from "@octokit/rest";
+import { classifyGithubError, type ToolResult } from "./_errors.js";
 
 export const definition = {
   name: "get_pr_details",
@@ -21,44 +22,48 @@ export const definition = {
 export async function handler(
   args: Record<string, unknown> | undefined,
   octokit: Octokit,
-) {
+): Promise<ToolResult> {
   const { owner, repo, pr_number } = (args ?? {}) as {
     owner: string;
     repo: string;
     pr_number: number;
   };
 
-  const { data } = await octokit.pulls.get({
-    owner,
-    repo,
-    pull_number: pr_number,
-  });
+  try {
+    const { data } = await octokit.pulls.get({
+      owner,
+      repo,
+      pull_number: pr_number,
+    });
 
-  const details = {
-    number: data.number,
-    title: data.title,
-    state: data.state,
-    draft: data.draft,
-    author: data.user?.login,
-    body: data.body,
-    base: data.base.ref,
-    head: data.head.ref,
-    mergeable: data.mergeable,
-    merged: data.merged,
-    comments: data.comments,
-    review_comments: data.review_comments,
-    commits: data.commits,
-    additions: data.additions,
-    deletions: data.deletions,
-    changed_files: data.changed_files,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-    url: data.html_url,
-  };
+    const details = {
+      number: data.number,
+      title: data.title,
+      state: data.state,
+      draft: data.draft,
+      author: data.user?.login,
+      body: data.body,
+      base: data.base.ref,
+      head: data.head.ref,
+      mergeable: data.mergeable,
+      merged: data.merged,
+      comments: data.comments,
+      review_comments: data.review_comments,
+      commits: data.commits,
+      additions: data.additions,
+      deletions: data.deletions,
+      changed_files: data.changed_files,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      url: data.html_url,
+    };
 
-  return {
-    content: [
-      { type: "text" as const, text: JSON.stringify(details, null, 2) },
-    ],
-  };
+    return {
+      content: [
+        { type: "text" as const, text: JSON.stringify(details, null, 2) },
+      ],
+    };
+  } catch (e) {
+    return classifyGithubError(e, `PR ${owner}/${repo}#${pr_number}`);
+  }
 }
