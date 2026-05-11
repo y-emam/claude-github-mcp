@@ -43,6 +43,19 @@ GITHUB_TOKEN=ghp_xxx npm start
 
 The server speaks MCP over stdio.
 
+## Example prompts
+
+Once the server is connected to Claude, natural-language prompts like these
+will trigger the corresponding tool:
+
+| Prompt | Tool |
+| --- | --- |
+| "What are my 5 most recently updated repos?" | `list_repos` |
+| "Summarize the README of y-emam/claude-github-mcp" | `get_repo_readme` |
+| "Find open issues mentioning 'bug' in my repos" | `search_issues` |
+| "Show me PR #12 in y-emam/claude-github-mcp" | `get_pr_details` |
+| "List my private repos sorted by last push" | `list_repos` |
+
 ## Use with Claude Desktop
 
 Add an entry to your `claude_desktop_config.json`:
@@ -78,3 +91,7 @@ Each file under `src/tools/` exports a `definition` (advertised by
 `ListTools`) and a `handler(args, octokit)` (invoked by `CallTool`). To add a
 new tool, drop a file in `src/tools/` and append it to the array in
 `src/tools/index.ts`.
+
+## License
+
+[MIT](./LICENSE) © Yasser Emam
